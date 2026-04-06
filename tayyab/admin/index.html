@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Login – MovieBox</title>
+  <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/3163/3163478.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --primary: #e50914;
+      --primary-hover: #b20710;
+      --bg-dark: #0f0f0f;
+      --glass: rgba(255,255,255,0.07);
+      --glass-border: rgba(255,255,255,0.12);
+      --text-muted: #b3b3b3;
+    }
+
+    body {
+      background: var(--bg-dark);
+      color: #fff;
+      font-family: 'Outfit', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    /* Ambient background glow */
+    body::before {
+      content: '';
+      position: fixed;
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, rgba(229,9,20,0.15) 0%, transparent 70%);
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .login-card {
+      position: relative;
+      z-index: 1;
+      background: rgba(20, 20, 20, 0.9);
+      border: 1px solid var(--glass-border);
+      border-radius: 20px;
+      padding: 48px 40px;
+      width: 100%;
+      max-width: 420px;
+      backdrop-filter: blur(20px);
+      box-shadow: 0 24px 64px rgba(0,0,0,0.6);
+      animation: slideUp 0.5s cubic-bezier(0.4,0,0.2,1) forwards;
+    }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(30px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .logo {
+      text-align: center;
+      margin-bottom: 8px;
+    }
+
+    .logo-text {
+      font-size: 2rem;
+      font-weight: 800;
+      color: var(--primary);
+      letter-spacing: -1px;
+    }
+
+    .logo-text span { color: #fff; }
+
+    .subtitle {
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      margin-bottom: 36px;
+    }
+
+    .shield-icon {
+      display: block;
+      text-align: center;
+      font-size: 2.5rem;
+      color: var(--primary);
+      margin-bottom: 16px;
+      filter: drop-shadow(0 0 12px rgba(229,9,20,0.5));
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .input-wrapper {
+      position: relative;
+    }
+
+    .input-wrapper > i {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      pointer-events: none;
+    }
+
+    .form-group input {
+      width: 100%;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--glass-border);
+      color: #fff;
+      padding: 13px 44px 13px 40px; /* right padding makes room for eye icon */
+      border-radius: 10px;
+      font-size: 1rem;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.3s, background 0.3s;
+    }
+
+    .form-group input:focus {
+      border-color: var(--primary);
+      background: rgba(229,9,20,0.05);
+    }
+
+    .toggle-pass {
+      position: absolute;
+      right: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: color 0.2s;
+    }
+
+    .toggle-pass:hover { color: #fff; }
+
+    .login-btn {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, var(--primary), #ff3d47);
+      border: none;
+      border-radius: 10px;
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      margin-top: 8px;
+      transition: transform 0.2s, box-shadow 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    .login-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(229,9,20,0.4);
+    }
+
+    .error-msg {
+      display: none;
+      background: rgba(229,9,20,0.12);
+      border: 1px solid rgba(229,9,20,0.3);
+      color: #ff6b6b;
+      border-radius: 8px;
+      padding: 12px 16px;
+      font-size: 0.9rem;
+      margin-bottom: 16px;
+      text-align: center;
+    }
+
+    .error-msg.show { display: block; }
+  </style>
+</head>
+<body>
+  <div class="login-card">
+    <i class="fas fa-user-shield shield-icon"></i>
+    <div class="logo"><span class="logo-text">MOVIE<span>BOX</span></span></div>
+    <p class="subtitle">Admin Access Only</p>
+
+    <div class="error-msg" id="error-msg">
+      <i class="fas fa-exclamation-circle"></i> Incorrect email or password.
+    </div>
+
+    <form id="login-form" onsubmit="return false;">
+      <div class="form-group">
+        <label>Email</label>
+        <div class="input-wrapper">
+          <i class="fas fa-envelope"></i>
+          <input type="email" id="admin-email" placeholder="admin@example.com" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" required>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Password</label>
+        <div class="input-wrapper">
+          <i class="fas fa-lock"></i>
+          <input type="password" id="admin-pass" placeholder="••••••••" autocomplete="new-password" autocorrect="off" required>
+          <button type="button" class="toggle-pass" onclick="togglePass()" tabindex="-1">
+            <i class="fas fa-eye" id="eye-icon"></i>
+          </button>
+        </div>
+      </div>
+
+      <button class="login-btn" onclick="doLogin()">
+        <i class="fas fa-sign-in-alt"></i> Login to Admin Panel
+      </button>
+    </form>
+  </div>
+
+  <script>
+    // Check if already logged in
+    if (sessionStorage.getItem('mb_admin') === 'true') {
+      window.location.href = '/tayyab/admin/dashboard.html';
+    }
+
+    function doLogin() {
+      const email = document.getElementById('admin-email').value.trim();
+      const pass  = document.getElementById('admin-pass').value;
+      const err   = document.getElementById('error-msg');
+
+      if (email === 'tayyabdev@make.com' && pass === 'Tayyabali77865') {
+        sessionStorage.setItem('mb_admin', 'true');
+        window.location.href = '/tayyab/admin/dashboard.html';
+      } else {
+        err.classList.add('show');
+        document.getElementById('admin-pass').value = '';
+      }
+    }
+
+    function togglePass() {
+      const input = document.getElementById('admin-pass');
+      const icon  = document.getElementById('eye-icon');
+      if (input.type === 'password') {
+        input.type = 'text';
+        icon.className = 'fas fa-eye-slash';
+      } else {
+        input.type = 'password';
+        icon.className = 'fas fa-eye';
+      }
+    }
+
+    // Allow Enter key
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Enter') doLogin();
+    });
+  </script>
+</body>
+</html>

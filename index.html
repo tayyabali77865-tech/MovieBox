@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MovieBox | Discover Movies & Anime</title>
+  <meta name="description"
+    content="MovieBox - The ultimate destination for movie and anime discovery with real-time updates and premium features.">
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Inter:wght@400;600;700&display=swap"
+    rel="stylesheet">
+
+  <!-- Font Awesome for Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <!-- SEO & Favicon -->
+  <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/3163/3163478.png">
+
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="style.css">
+
+  <!-- YouTube IFrame API -->
+  <script src="https://www.youtube.com/iframe_api"></script>
+</head>
+
+<body>
+
+  <!-- Navigation -->
+  <nav id="navbar">
+    <div class="container nav-content">
+      <a href="#" class="logo">MOVIE<span>BOX</span></a>
+
+      <ul class="nav-links">
+        <li><a href="#" class="nav-item active" data-type="movie">Movies</a></li>
+        <li><a href="#" class="nav-item" data-type="tv">Tv Series</a></li>
+        <li><a href="#" class="nav-item" data-type="anime">Anime</a></li>
+      </ul>
+
+      <div class="search-container">
+        <i class="fas fa-search"></i>
+        <input type="text" id="movie-search" placeholder="Search movies, anime..." autocomplete="off">
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <main class="container">
+
+    <!-- Filters & Category Chips -->
+    <section class="filters-section fade-in">
+      <div class="filter-chip active" data-filter="trending">Trending</div>
+      <div class="filter-chip" data-filter="popular">Popular</div>
+      <div class="filter-chip" data-filter="top_rated">Top Rated</div>
+      <div class="filter-chip" data-filter="upcoming">Upcoming</div>
+
+      <select id="genre-select" class="filter-chip glass">
+        <option value="">All Genres</option>
+        <!-- Genres filled by JS -->
+      </select>
+    </section>
+
+    <!-- Filter Heading -->
+    <!-- Filter Heading -->
+    <h2 id="filter-heading" class="section-title fade-in" style="display: none;"></h2>
+
+    <!-- Movie Grid Container -->
+    <section id="movie-container" class="movie-grid fade-in">
+      <!-- Movie cards injected here -->
+      <!-- Skeleton cards shown initially -->
+      <div class="movie-card skeleton"></div>
+      <div class="movie-card skeleton"></div>
+      <div class="movie-card skeleton"></div>
+      <div class="movie-card skeleton"></div>
+      <div class="movie-card skeleton"></div>
+      <div class="movie-card skeleton"></div>
+      <div class="movie-card skeleton"></div>
+      <div class="movie-card skeleton"></div>
+      <div class="movie-card skeleton"></div>
+      <div class="movie-card skeleton"></div>
+    </section>
+
+    <!-- Admin Panel Section (Hidden by default) -->
+    <section id="admin-panel" class="admin-panel glass fade-in">
+      <h2><i class="fas fa-user-shield"></i> Admin Dashboard</h2>
+      <p>Manage custom movie links and Hindi dubbed status.</p>
+      <div style="margin-top: 1rem; display: flex; gap: 1rem; flex-wrap: wrap;">
+        <input type="text" id="admin-movie-id" placeholder="Movie ID" class="filter-chip glass" style="width: 150px;">
+        <input type="text" id="admin-custom-link" placeholder="Custom Watch Link" class="filter-chip glass"
+          style="width: 250px;">
+        <label style="display: flex; align-items: center; gap: 5px;">
+          <input type="checkbox" id="admin-hindi-dubbed"> Force Hindi Dubbed
+        </label>
+        <button id="admin-save-btn" class="btn-primary" style="padding: 10px 20px;">Save Data</button>
+      </div>
+      <div id="admin-status" style="margin-top: 1rem; color: #4caf50;"></div>
+      <div id="admin-list" style="margin-top: 2rem; border-top: 1px solid var(--glass-border); padding-top: 1rem;">
+        <!-- List of managed movies -->
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Movie Detail Modal -->
+  <div id="movie-modal" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-hero">
+        <div id="trailer-container" style="width: 100%; height: 100%;">
+          <!-- YouTube iframe injected here -->
+          <div id="no-trailer"
+            style="display: none; height: 100%; justify-content: center; align-items: center; background: #111; color: #444; font-size: 2rem; font-weight: 800;">
+            TRAILER NOT AVAILABLE
+          </div>
+        </div>
+        <div class="modal-hero-overlay"></div>
+        <div id="sound-toggle" class="modal-sound-toggle"><i class="fas fa-volume-mute"></i> <span>Muted</span></div>
+      </div>
+
+      <!-- Close button outside hero so it's always visible on mobile -->
+      <div id="close-modal" class="modal-close"><i class="fas fa-times"></i></div>
+
+      <div class="modal-body">
+        <div class="modal-poster-container">
+          <img id="modal-poster" src="" alt="Poster" class="modal-poster">
+        </div>
+        <div class="modal-details">
+          <h1 id="modal-title">Movie Title</h1>
+          <div class="modal-meta">
+            <span id="modal-rating"><i class="fas fa-star rating-star"></i> 8.5</span>
+            <span id="modal-year"><i class="far fa-calendar-alt"></i> 2024</span>
+            <span id="modal-genres">Action, Adventure</span>
+            <span id="modal-language" style="color: var(--primary);"><i class="fas fa-language"></i> Hindi Dubbed</span>
+          </div>
+          <p id="modal-description" class="modal-description">
+            This is a placeholder for the movie description.
+          </p>
+          <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+            <button id="modal-wishlist-btn" class="btn-secondary"><i class="far fa-heart"></i> Add to Wishlist</button>
+            <button id="modal-watch-btn" class="btn-primary"><i class="fas fa-play"></i> Watch Now</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notifications -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- Scripts -->
+  <script src="api.js"></script>
+  <script src="admin.js"></script>
+  <script src="app.js"></script>
+
+</body>
+
+</html>

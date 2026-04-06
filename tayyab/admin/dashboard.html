@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard – MovieBox</title>
+    <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/3163/3163478.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --primary: #e50914;
+            --bg-dark: #0f0f0f;
+            --glass: rgba(255, 255, 255, 0.07);
+            --glass-border: rgba(255, 255, 255, 0.12);
+            --text-muted: #b3b3b3;
+        }
+
+        body {
+            background: var(--bg-dark);
+            color: #fff;
+            font-family: 'Outfit', sans-serif;
+            min-height: 100vh;
+        }
+
+        /* Topbar */
+        header {
+            background: rgba(15, 15, 15, 0.95);
+            border-bottom: 1px solid var(--glass-border);
+            padding: 16px 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            backdrop-filter: blur(12px);
+        }
+
+        .logo {
+            font-size: 1.6rem;
+            font-weight: 800;
+            color: var(--primary);
+        }
+
+        .logo span {
+            color: #fff;
+        }
+
+        .logout-btn {
+            background: rgba(229, 9, 20, 0.1);
+            border: 1px solid rgba(229, 9, 20, 0.3);
+            color: #ff6b6b;
+            padding: 8px 18px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 0.9rem;
+            transition: background 0.2s;
+        }
+
+        .logout-btn:hover {
+            background: rgba(229, 9, 20, 0.2);
+        }
+
+        /* Main */
+        main {
+            max-width: 900px;
+            margin: 40px auto;
+            padding: 0 24px;
+        }
+
+        h1 {
+            font-size: 1.8rem;
+            margin-bottom: 6px;
+        }
+
+        .subtitle {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            margin-bottom: 32px;
+        }
+
+        /* Card */
+        .card {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 28px;
+            margin-bottom: 24px;
+        }
+
+        .card h2 {
+            font-size: 1.1rem;
+            margin-bottom: 18px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card h2 i {
+            color: var(--primary);
+        }
+
+        .form-row {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 12px;
+        }
+
+        input[type=text],
+        input[type=url] {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--glass-border);
+            color: #fff;
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 0.95rem;
+            outline: none;
+            flex: 1;
+            min-width: 140px;
+            transition: border-color 0.2s;
+        }
+
+        input[type=text]:focus,
+        input[type=url]:focus {
+            border-color: var(--primary);
+        }
+
+        label.checkbox {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+
+        .btn-save {
+            background: linear-gradient(135deg, var(--primary), #ff3d47);
+            border: none;
+            color: #fff;
+            padding: 11px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: inherit;
+            font-weight: 600;
+            font-size: 0.95rem;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .btn-save:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(229, 9, 20, 0.35);
+        }
+
+        .status-msg {
+            margin-top: 10px;
+            color: #4caf50;
+            font-size: 0.9rem;
+            min-height: 20px;
+        }
+
+        /* List */
+        #admin-list {
+            margin-top: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .admin-item {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--glass-border);
+            border-radius: 10px;
+            padding: 12px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .admin-item-info {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        .admin-item-info strong {
+            color: #fff;
+        }
+
+        .btn-delete {
+            background: rgba(229, 9, 20, 0.1);
+            border: 1px solid rgba(229, 9, 20, 0.3);
+            color: #ff6b6b;
+            padding: 6px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-family: inherit;
+        }
+
+        .btn-delete:hover {
+            background: rgba(229, 9, 20, 0.2);
+        }
+
+        .empty-msg {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            text-align: center;
+            padding: 20px 0;
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <div class="logo">MOVIE<span>BOX</span> <span
+                style="font-size:0.8rem; color:var(--text-muted); font-weight:400;">Admin</span></div>
+        <button class="logout-btn" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</button>
+    </header>
+
+    <main>
+        <h1><i class="fas fa-user-shield" style="color:var(--primary)"></i> Admin Dashboard</h1>
+        <p class="subtitle">Manage custom movie links and Hindi dubbed overrides.</p>
+
+        <div class="card">
+            <h2><i class="fas fa-plus-circle"></i> Upload / Override Content</h2>
+            <div class="form-row" style="margin-bottom: 20px;">
+                <input type="text" id="admin-movie-id" placeholder="ID (TMDB or Unique)" style="flex: 0.5;">
+                <select id="admin-type" style="background: rgba(255, 255, 255, 0.05); border: 1px solid var(--glass-border); color: #fff; padding: 10px; border-radius: 8px; font-family: inherit;">
+                    <option value="movie">Movie</option>
+                    <option value="tv">TV Series</option>
+                    <option value="anime">Anime</option>
+                </select>
+                <input type="text" id="admin-title" placeholder="Title" style="flex: 2;">
+            </div>
+            
+            <div class="form-row" style="margin-bottom: 20px;">
+                <textarea id="admin-desc" placeholder="Description / Overview" style="width: 100%; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--glass-border); color: #fff; padding: 12px; border-radius: 8px; font-family: inherit; height: 80px; resize: none;"></textarea>
+            </div>
+
+            <div class="form-row" style="margin-bottom: 20px;">
+                <input type="text" id="admin-poster" placeholder="Poster URL (https://... or /path.jpg)">
+                <input type="text" id="admin-date" placeholder="Release Date (YYYY-MM-DD)">
+                <input type="text" id="admin-genres" placeholder="Genres (Action, Drama)">
+            </div>
+
+            <div class="form-row">
+                <input type="url" id="admin-custom-link" placeholder="Watch Link (https://...)">
+                <label class="checkbox">
+                    <input type="checkbox" id="admin-hindi-dubbed"> Hindi Dubbed
+                </label>
+            </div>
+            
+            <div style="margin-top: 20px;">
+                <button class="btn-save" onclick="saveData()"><i class="fas fa-cloud-upload-alt"></i> Save to Database</button>
+                <div class="status-msg" id="status-msg"></div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2><i class="fas fa-list"></i> Managed Movies</h2>
+            <div id="admin-list"></div>
+        </div>
+    </main>
+
+    <script>
+        // Auth guard
+        if (sessionStorage.getItem('mb_admin') !== 'true') {
+            window.location.href = './index.html';
+        }
+
+        function logout() {
+            sessionStorage.removeItem('mb_admin');
+            window.location.href = './index.html';
+        }
+
+        function getStore() {
+            return JSON.parse(localStorage.getItem('moviebox_admin') || '{}');
+        }
+
+        function setStore(data) {
+            localStorage.setItem('moviebox_admin', JSON.stringify(data));
+        }
+
+        function saveData() {
+            const id = document.getElementById('admin-movie-id').value.trim();
+            const type = document.getElementById('admin-type').value;
+            const title = document.getElementById('admin-title').value.trim();
+            const desc = document.getElementById('admin-desc').value.trim();
+            const poster = document.getElementById('admin-poster').value.trim();
+            const date = document.getElementById('admin-date').value.trim();
+            const genres = document.getElementById('admin-genres').value.trim();
+            const link = document.getElementById('admin-custom-link').value.trim();
+            const hindi = document.getElementById('admin-hindi-dubbed').checked;
+            const msg = document.getElementById('status-msg');
+
+            if (!id || !title) { 
+                msg.style.color = '#ff6b6b'; 
+                msg.textContent = 'ID and Title are required.'; 
+                return; 
+            }
+
+            const store = getStore();
+            store[id] = { 
+                id, 
+                type, 
+                title: type === 'movie' ? title : null,
+                name: type !== 'movie' ? title : null,
+                overview: desc,
+                poster_path: poster,
+                release_date: type === 'movie' ? date : null,
+                first_air_date: type !== 'movie' ? date : null,
+                genres_str: genres,
+                original_language: hindi ? 'hi' : 'en',
+                customLink: link || null, 
+                manual: true 
+            };
+            setStore(store);
+
+            msg.style.color = '#4caf50';
+            msg.textContent = `✓ Successfully saved ${title} to database.`;
+
+            // Reset form
+            document.getElementById('admin-movie-id').value = '';
+            document.getElementById('admin-title').value = '';
+            document.getElementById('admin-desc').value = '';
+            document.getElementById('admin-poster').value = '';
+            document.getElementById('admin-date').value = '';
+            document.getElementById('admin-genres').value = '';
+            document.getElementById('admin-custom-link').value = '';
+            document.getElementById('admin-hindi-dubbed').checked = false;
+
+            renderList();
+        }
+
+        function deleteEntry(id) {
+            const store = getStore();
+            delete store[id];
+            setStore(store);
+            renderList();
+        }
+
+        function renderList() {
+            const list = document.getElementById('admin-list');
+            const store = getStore();
+            const entries = Object.entries(store);
+
+            if (entries.length === 0) {
+                list.innerHTML = '<p class="empty-msg">No entries yet.</p>';
+                return;
+            }
+
+            list.innerHTML = entries.map(([id, data]) => `
+        <div class="admin-item">
+          <div class="admin-item-info">
+            <strong style="color:var(--primary);">${data.title || data.name || 'Unknown'}</strong> <span style="font-size:0.7rem; opacity:0.6;">(${data.type})</span>
+            <div style="font-size:0.8rem; margin-top:4px;">ID: ${id} | ${data.original_language === 'hi' ? 'Hindi' : 'Original'}</div>
+            ${data.customLink ? `<a href="${data.customLink}" target="_blank" style="color:#2196f3; font-size:0.8rem;">Watch Link</a>` : ''}
+          </div>
+          <button class="btn-delete" onclick="deleteEntry('${id}')"><i class="fas fa-trash"></i></button>
+        </div>
+      `).join('');
+        }
+
+        renderList();
+    </script>
+</body>
+
+</html>
