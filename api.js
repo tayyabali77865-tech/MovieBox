@@ -33,7 +33,8 @@ const API = {
       if (type === 'movie') {
         url = `${BASE}/discover/movie?api_key=${KEY}&primary_release_date.gte=${dateStr}&sort_by=primary_release_date.asc&page=${page}`;
       } else {
-        url = `${BASE}/discover/tv?api_key=${KEY}&first_air_date.gte=${dateStr}&sort_by=first_air_date.asc&page=${page}&with_genres=16`;
+        url = `${BASE}/discover/tv?api_key=${KEY}&first_air_date.gte=${dateStr}&sort_by=first_air_date.asc&page=${page}`;
+        if (isAnime) url += '&with_genres=16';
       }
     } else {
       const endpoint = (isAnime || type === 'tv') ? 'tv' : 'movie';
