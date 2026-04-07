@@ -16,7 +16,7 @@ const API = {
     let url = '';
     const isAnime = type === 'anime';
     const cacheKey = `mv5_${type}_${filter}_${page}_${query}_${genre}`;
-    
+
     const cached = this.getCachedData(cacheKey);
     if (cached) return cached;
 
@@ -60,24 +60,24 @@ const API = {
       }
 
       this.cacheData(cacheKey, data);
-      
+
       // Manual Merge Logic
       try {
         const manual = JSON.parse(localStorage.getItem('moviebox_admin') || '{}');
         const items = Object.values(manual).filter(i => {
-            if (i.type !== (isAnime ? 'anime' : type)) return false;
-            if (query && !(i.title || i.name || '').toLowerCase().includes(query.toLowerCase())) return false;
-            return true;
+          if (i.type !== (isAnime ? 'anime' : type)) return false;
+          if (query && !(i.title || i.name || '').toLowerCase().includes(query.toLowerCase())) return false;
+          return true;
         });
         if (items.length > 0 && page === 1) {
-            items.forEach(item => {
-                const f = { ...item, manual: true };
-                const idx = data.results.findIndex(r => r.id == f.id);
-                if (idx !== -1) data.results[idx] = f;
-                else data.results.unshift(f);
-            });
+          items.forEach(item => {
+            const f = { ...item, manual: true };
+            const idx = data.results.findIndex(r => r.id == f.id);
+            if (idx !== -1) data.results[idx] = f;
+            else data.results.unshift(f);
+          });
         }
-      } catch (e) {}
+      } catch (e) { }
 
       return data;
     } catch (err) {
@@ -92,7 +92,7 @@ const API = {
       const resp = await fetch(url);
       const data = await resp.json();
       const t = data.results.find(v => v.type === 'Trailer' && v.site === 'YouTube') || data.results[0];
-      return t ? `https://www.youtube.com/embed/${t.key}?autoplay=1&mute=1` : null;
+      return t ? `https://www.youtube.com/embed/${t.key}?autoplay=1&mute=1&loop=1&playlist=${t.key}&controls=0&showinfo=0&rel=0` : null;
     } catch (e) { return null; }
   },
 
@@ -107,7 +107,7 @@ const API = {
   },
 
   cacheData(key, data) {
-    try { localStorage.setItem(key, JSON.stringify({ ts: Date.now(), data })); } catch (e) {}
+    try { localStorage.setItem(key, JSON.stringify({ ts: Date.now(), data })); } catch (e) { }
   },
 
   getCachedData(key) {
@@ -116,7 +116,7 @@ const API = {
       if (!c) return null;
       const o = JSON.parse(c);
       if ((Date.now() - o.ts) < window.API_CONFIG.CACHE_TIME) return o.data;
-    } catch (e) {}
+    } catch (e) { }
     return null;
   }
 };

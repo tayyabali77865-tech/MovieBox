@@ -120,28 +120,21 @@ const App = {
   setupRouting() {
     window.addEventListener('hashchange', () => {
       const hash = window.location.hash;
-      if (hash.startsWith('#media/')) {
-        const [_, mediaType, movieId] = hash.split('/');
-        this.openModal(parseInt(movieId), mediaType, false);
-      } else if (hash.startsWith('#watch/')) {
-        const [_, mediaType, movieId] = hash.split('/');
-        this.openModal(parseInt(movieId), mediaType, false, true);
+      if (hash.startsWith('#media/') || hash.startsWith('#watch/')) {
+        const parts = hash.split('/');
+        const mediaType = parts[1];
+        const movieId = parts[2];
+        const isWatching = hash.startsWith('#watch/');
+        this.openModal(movieId, mediaType, false, isWatching);
       } else if (hash === '') {
         this.closeModal(false);
       }
     });
 
-    // Initial check on page load
-    if (window.location.hash.startsWith('#media/')) {
-      setTimeout(() => {
-        const [_, mediaType, movieId] = window.location.hash.split('/');
-        this.openModal(parseInt(movieId), mediaType, false);
-      }, 500);
-    } else if (window.location.hash.startsWith('#watch/')) {
-      setTimeout(() => {
-        const [_, mediaType, movieId] = window.location.hash.split('/');
-        this.openModal(parseInt(movieId), mediaType, false, true);
-      }, 500);
+    const currentHash = window.location.hash;
+    if (currentHash.startsWith('#media/') || currentHash.startsWith('#watch/')) {
+      const parts = currentHash.split('/');
+      this.openModal(parts[2], parts[1], false, currentHash.startsWith('#watch/'));
     }
   },
 
@@ -274,7 +267,7 @@ const App = {
       const title = m.title || m.name || 'Unknown';
       const year = (m.release_date || m.first_air_date || '????').split('-')[0];
       const rating = m.vote_average ? m.vote_average.toFixed(1) : 'N/A';
-      
+
       const isManual = m.manual === true;
       const poster = m.poster_path ? (isManual && m.poster_path.startsWith('http') ? m.poster_path : API_CONFIG.IMG_URL + m.poster_path) : 'https://via.placeholder.com/500x750?text=No+Poster';
       const type = isManual ? (m.type || 'movie') : (m.title ? 'movie' : 'tv');
@@ -342,53 +335,71 @@ const App = {
     document.body.style.overflow = 'hidden';
 
     try {
-      const url = `${API_CONFIG.BASE_URL}/${type}/${movieId}?api_key=${API_CONFIG.KEY}`;
+      const { BASE_URL, KEY, IMG_URL } = window.API_CONFIG;
+      const url = `${BASE_URL}/${type}/${movieId}?api_key=${KEY}`;
       const res = await fetch(url);
+      if (!res.ok) throw new Error('Movie not found');
       const movie = await res.json();
 
       this.addToRecentlyViewed(movie);
       this.renderRecentlyViewed();
 
-      document.getElementById('modal-poster').src = movie.poster_path ? (API_CONFIG.IMG_URL + movie.poster_path) : 'https://via.placeholder.com/500x750?text=No+Poster';
+      document.getElementById('modal-poster').src = movie.poster_path ? (IMG_URL + movie.poster_path) : 'https://via.placeholder.com/500x750?text=No+Poster';
       document.getElementById('modal-title').textContent = movie.title || movie.name;
       document.getElementById('modal-rating').innerHTML = `<i class="fas fa-star rating-star"></i> ${movie.vote_average ? movie.vote_average.toFixed(1) : 'N/A'}`;
       document.getElementById('modal-year').innerHTML = `<i class="far fa-calendar-alt"></i> ${(movie.release_date || movie.first_air_date || '????').split('-')[0]}`;
       document.getElementById('modal-description').textContent = movie.overview || 'No description available.';
 
       this.updateMetaTags(movie, type);
-      
+
       const watchBtn = document.getElementById('modal-watch-btn');
       watchBtn.onclick = () => {
-         const store = JSON.parse(localStorage.getItem('moviebox_admin') || '{}');
-         if (movie.manual && movie.customLink) {
-            window.open(movie.customLink, '_blank');
-         } else if (store[movie.id] && store[movie.id].customLink) {
-            window.open(store[movie.id].customLink, '_blank');
-         } else {
-            window.open(`https://moviebox.pk/web/searchResult?keyword=${encodeURIComponent(movie.title || movie.name)}`, '_blank');
-         }
+        const store = JSON.parse(localStorage.getItem('moviebox_admin') || '{}');
+        if (movie.manual && movie.customLink) {
+          window.open(movie.customLink, '_blank');
+        } else if (store[movie.id] && store[movie.id].customLink) {
+          window.open(store[movie.id].customLink, '_blank');
+        } else {
+          window.open(`https://moviebox.pk/web/searchResult?keyword=${encodeURIComponent(movie.title || movie.name)}`, '_blank');
+        }
       };
 
       const trailerContainer = document.getElementById('trailer-container');
-      const trailerUrl = await API.getTrailer(movieId, type);
       const noTrailer = document.getElementById('no-trailer');
 
-      if (trailerUrl) {
-        trailerContainer.innerHTML = `<iframe id="trailer-video" src="${trailerUrl}" width="100%" height="100%" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>`;
-        noTrailer.style.display = 'none';
-      } else {
+      // Force destroy the old player before fetching new one
+      if (trailerContainer) {
         trailerContainer.innerHTML = '';
-        noTrailer.style.display = 'flex';
+        const oldIframe = trailerContainer.querySelector('iframe');
+        if (oldIframe) oldIframe.remove();
+      }
+      if (noTrailer) noTrailer.style.display = 'none';
+
+      const trailerUrl = await API.getTrailer(movieId, type);
+
+      if (trailerContainer && noTrailer) {
+        if (trailerUrl) {
+          // Small delay to ensure the DOM has cleared the old player
+          setTimeout(() => {
+            trailerContainer.innerHTML = `<iframe id="trailer-video" src="${trailerUrl}" width="100%" height="100%" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen style="pointer-events: none;"></iframe>`;
+          }, 50);
+          noTrailer.style.display = 'none';
+        } else {
+          trailerContainer.innerHTML = '';
+          noTrailer.style.display = 'flex';
+        }
       }
 
       const body = document.querySelector('.modal-body');
       const hero = document.querySelector('.modal-hero');
-      if (isWatching) {
-        body.style.display = 'none';
-        hero.style.height = '100%';
-      } else {
-        body.style.display = 'flex';
-        hero.style.height = '60%';
+      if (body && hero) {
+        if (isWatching) {
+          body.style.display = 'none';
+          hero.style.height = '100%';
+        } else {
+          body.style.display = 'flex';
+          hero.style.height = '60%';
+        }
       }
     } catch (e) {
       console.error(e);
@@ -397,9 +408,13 @@ const App = {
   },
 
   closeModal(updHash = true) {
-    this.modal.classList.remove('active');
+    if (this.modal) this.modal.classList.remove('active');
     document.body.style.overflow = 'auto';
-    document.getElementById('trailer-container').innerHTML = '';
+    const trailerContainer = document.getElementById('trailer-container');
+    if (trailerContainer) trailerContainer.innerHTML = '';
+    const noTrailer = document.getElementById('no-trailer');
+    if (noTrailer) noTrailer.style.display = 'none';
+
     if (updHash) window.location.hash = '';
     this.resetMetaTags();
   },
@@ -413,7 +428,7 @@ const App = {
     document.title = title;
     this.setMeta('description', desc);
     this.setMeta('keywords', 'Movies online, Hindi Dubbed Movies, TV Series online, Anime online, Upcoming Movies, Trending TV Shows, Movie reviews');
-    
+
     this.setMetaProperty('og:title', title);
     this.setMetaProperty('og:description', desc);
     this.setMetaProperty('og:url', url);
@@ -490,7 +505,7 @@ const App = {
     // SEO Meta
     this.setMeta('description', `Watch ${title} (${year}) online. This is a ${genre} available in Hindi Dubbed. Stream trailers, reviews, and details on MovieBox.`);
     this.setMeta('keywords', `${title}, ${title} Hindi Dubbed, ${genre}, Watch ${title} online, ${category} online`);
-    
+
     // Open Graph
     this.setMetaProperty('og:title', `${title} - Watch Online | MovieBox`);
     this.setMetaProperty('og:description', `Stream ${title} (${year}) online. ${title} is a ${genre} available in Hindi Dubbed. Check ratings and trailers.`);
