@@ -1,74 +1,53 @@
 /**
  * MovieBox - API Service (TMDB Integration)
- * Hardened with LocalStorage safety and detailed fetch diagnostics.
+ * Cleaned URL construction to prevent any extra slashes or spaces.
  */
 
-const API_CONFIG = {
-  KEY: '3370c7875d057cde17b3d68c22cba6e8',
-  BASE_URL: 'https://api.themoviedb.org/3',
-  IMG_URL: 'https://image.tmdb.org/t/p/w500',
-  BACKDROP_URL: 'https://image.tmdb.org/t/p/original',
-  CACHE_TIME: 24 * 60 * 60 * 1000,
-};
+const KEY = '3370c7875d057cde17b3d68c22cba6e8';
+const BASE = 'https://api.themoviedb.org/3';
 
 const API = {
   async getMovies(type = 'movie', filter = 'trending', page = 1, query = '', genre = '') {
     let url = '';
     const isAnime = type === 'anime';
-    const cacheKey = `movies_v5_${type}_${filter}_${page}_${query}_${genre}`;
+    const cacheKey = `mv5_${type}_${filter}_${page}_${query}_${genre}`;
     
-    // Safety check for cached data
-    try {
-        const cached = this.getCachedData(cacheKey);
-        if (cached) return cached;
-    } catch (e) {
-        console.warn('Cache access error:', e);
-    }
+    const cached = this.getCachedData(cacheKey);
+    if (cached) return cached;
 
-    // URL Construction
+    // Build URL without any extra slashes
     if (query) {
-      url = `${API_CONFIG.BASE_URL}/search/${isAnime ? 'tv' : type}?api_key=${API_CONFIG.KEY}&query=${encodeURIComponent(query)}&page=${page}`;
+      const endpoint = isAnime ? 'tv' : type;
+      url = `${BASE}/search/${endpoint}?api_key=${KEY}&query=${encodeURIComponent(query)}&page=${page}`;
       if (isAnime) url += '&with_genres=16';
     } else if (filter === 'trending') {
       if (isAnime) {
-        url = `${API_CONFIG.BASE_URL}/discover/tv?api_key=${API_CONFIG.KEY}&with_genres=16&sort_by=popularity.desc&page=${page}`;
+        url = `${BASE}/discover/tv?api_key=${KEY}&with_genres=16&sort_by=popularity.desc&page=${page}`;
       } else {
-        url = `${API_CONFIG.BASE_URL}/trending/${type}/day?api_key=${API_CONFIG.KEY}&page=${page}`;
+        url = `${BASE}/trending/${type}/day?api_key=${KEY}&page=${page}`;
       }
     } else if (filter === 'upcoming') {
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
       const dateStr = tomorrow.toISOString().split('T')[0];
       if (type === 'movie') {
-        url = `${API_CONFIG.BASE_URL}/discover/movie?api_key=${API_CONFIG.KEY}&primary_release_date.gte=${dateStr}&sort_by=primary_release_date.asc&page=${page}`;
+        url = `${BASE}/discover/movie?api_key=${KEY}&primary_release_date.gte=${dateStr}&sort_by=primary_release_date.asc&page=${page}`;
       } else {
-        url = `${API_CONFIG.BASE_URL}/discover/tv?api_key=${API_CONFIG.KEY}&first_air_date.gte=${dateStr}&sort_by=first_air_date.asc&page=${page}`;
-        if (isAnime) url += '&with_genres=16';
+        url = `${BASE}/discover/tv?api_key=${KEY}&first_air_date.gte=${dateStr}&sort_by=first_air_date.asc&page=${page}&with_genres=16`;
       }
     } else {
       const endpoint = (isAnime || type === 'tv') ? 'tv' : 'movie';
-      const sortBy = 'popularity.desc';
-      if (genre) {
-        url = `${API_CONFIG.BASE_URL}/discover/${endpoint}?api_key=${API_CONFIG.KEY}&with_genres=${genre}&sort_by=${sortBy}&page=${page}`;
-        if (isAnime && !genre.split(',').includes('16')) url += ',16';
-      } else {
-        url = `${API_CONFIG.BASE_URL}/${endpoint}/${filter}?api_key=${API_CONFIG.KEY}&page=${page}`;
-        if (isAnime) {
-            url = `${API_CONFIG.BASE_URL}/discover/tv?api_key=${API_CONFIG.KEY}&with_genres=16&sort_by=${sortBy}&page=${page}`;
-        }
-      }
+      const sortBy = filter === 'top_rated' ? 'vote_average.desc' : 'popularity.desc';
+      url = `${BASE}/discover/${endpoint}?api_key=${KEY}&sort_by=${sortBy}&page=${page}`;
+      if (genre) url += `&with_genres=${genre}`;
+      if (isAnime) url += genre.includes('16') ? '' : '&with_genres=16';
+      if (filter === 'top_rated') url += '&vote_count.gte=100';
     }
 
     try {
-      const response = await fetch(url, {
-        method: 'GET',
-        mode: 'cors',
-        credentials: 'omit',
-        headers: { 'Accept': 'application/json' }
-      });
-
-      if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      const data = await response.json();
+      const resp = await fetch(url.trim(), { method: 'GET', mode: 'cors' });
+      if (!resp.ok) throw new Error(`Status ${resp.status}`);
+      const data = await resp.json();
 
       if (isAnime) {
         data.results = data.results.filter(m => m.genre_ids && m.genre_ids.includes(16));
@@ -76,77 +55,63 @@ const API = {
 
       this.cacheData(cacheKey, data);
       
-      // Safe Manual Merge
+      // Manual Merge Logic
       try {
-        const manualData = JSON.parse(localStorage.getItem('moviebox_admin') || '{}');
-        const manualItems = Object.values(manualData).filter(item => {
-            if (item.type !== (isAnime ? 'anime' : type)) return false;
-            if (filter === 'upcoming') {
-                const nowUTC = new Date().toISOString().split('T')[0];
-                const itemDate = item.release_date || item.first_air_date;
-                if (!itemDate || itemDate <= nowUTC) return false;
-            }
-            if (query) {
-                const title = (item.title || item.name || '').toLowerCase();
-                if (!title.includes(query.toLowerCase())) return false;
-            }
+        const manual = JSON.parse(localStorage.getItem('moviebox_admin') || '{}');
+        const items = Object.values(manual).filter(i => {
+            if (i.type !== (isAnime ? 'anime' : type)) return false;
+            if (query && !(i.title || i.name || '').toLowerCase().includes(query.toLowerCase())) return false;
             return true;
         });
-
-        if (manualItems.length > 0 && page === 1) {
-            manualItems.forEach(manualItem => {
-                const formatted = { ...manualItem, manual: true };
-                const index = data.results.findIndex(r => r.id == formatted.id);
-                if (index !== -1) data.results[index] = formatted;
-                else data.results.unshift(formatted);
+        if (items.length > 0 && page === 1) {
+            items.forEach(item => {
+                const f = { ...item, manual: true };
+                const idx = data.results.findIndex(r => r.id == f.id);
+                if (idx !== -1) data.results[idx] = f;
+                else data.results.unshift(f);
             });
         }
-      } catch (err) {
-        console.error('Manual merge failed but continuing:', err);
-      }
+      } catch (e) {}
 
       return data;
-    } catch (error) {
-      console.error('TMDB FETCH ERROR:', error);
-      return { _error: error.message + ' | URL: ' + url.substring(0, 50) + '...' };
+    } catch (err) {
+      return { _error: `${err.message} | URL: ${url}` };
     }
   },
 
   async getTrailer(id, type = 'movie') {
-    const url = `${API_CONFIG.BASE_URL}/${type}/${id}/videos?api_key=${API_CONFIG.KEY}`;
+    const url = `${BASE}/${type}/${id}/videos?api_key=${KEY}`;
     try {
-      const response = await fetch(url, { credentials: 'omit' });
-      const data = await response.json();
-      const trailer = data.results.find(v => v.type === 'Trailer' && v.site === 'YouTube') || data.results[0];
-      return trailer ? `https://www.youtube.com/embed/${trailer.key}?autoplay=1&mute=1&enablejsapi=1` : null;
+      const resp = await fetch(url);
+      const data = await resp.json();
+      const t = data.results.find(v => v.type === 'Trailer' && v.site === 'YouTube') || data.results[0];
+      return t ? `https://www.youtube.com/embed/${t.key}?autoplay=1&mute=1` : null;
     } catch (e) { return null; }
   },
 
   async getGenres(type = 'movie') {
-    const url = `${API_CONFIG.BASE_URL}/genre/${type}/list?api_key=${API_CONFIG.KEY}`;
+    const url = `${BASE}/genre/${type}/list?api_key=${KEY}`;
     try {
-      const response = await fetch(url, { credentials: 'omit' });
-      const data = await response.json();
+      const resp = await fetch(url);
+      const data = await resp.json();
       return data.genres || [];
     } catch (e) { return []; }
   },
 
   cacheData(key, data) {
-    try {
-        localStorage.setItem(key, JSON.stringify({ timestamp: Date.now(), data: data }));
-    } catch (e) {}
+    try { localStorage.setItem(key, JSON.stringify({ ts: Date.now(), data })); } catch (e) {}
   },
 
   getCachedData(key) {
     try {
-        const cached = localStorage.getItem(key);
-        if (!cached) return null;
-        const cacheObj = JSON.parse(cached);
-        if ((Date.now() - cacheObj.timestamp) < API_CONFIG.CACHE_TIME) return cacheObj.data;
-        localStorage.removeItem(key);
+      const c = localStorage.getItem(key);
+      if (!c) return null;
+      const o = JSON.parse(c);
+      if ((Date.now() - o.ts) < 86400000) return o.data;
     } catch (e) {}
     return null;
   }
 };
 
 window.API = API;
+window.API_CONFIG = { IMG_URL: 'https://image.tmdb.org/t/p/w500', BACKDROP_URL: 'https://image.tmdb.org/t/p/original' };
