@@ -122,8 +122,7 @@ const API = {
       return data;
     } catch (error) {
       console.error('TMDB API GET MOVIES ERROR:', error);
-      console.log('Tested URL:', typeof url !== 'undefined' ? url : 'unknown');
-      return null;
+      return { _error: error.message || 'Unknown Fetch Error' };
     }
   },
 
