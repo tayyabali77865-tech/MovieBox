@@ -1,6 +1,6 @@
 /**
  * MovieBox - API Service (TMDB Integration)
- * Handles all movie and anime data fetching with caching.
+ * Hardened with LocalStorage safety and detailed fetch diagnostics.
  */
 
 const API_CONFIG = {
@@ -13,16 +13,19 @@ const API_CONFIG = {
 
 const API = {
   async getMovies(type = 'movie', filter = 'trending', page = 1, query = '', genre = '') {
-    // Cache versioning (v4) to clear any old 1999/2003 data from user's browser
-    const manualData = JSON.parse(localStorage.getItem('moviebox_admin') || '{}');
-    const manualList = Object.values(manualData);
-    const cacheKey = `movies_v4_${type}_${filter}_${page}_${query}_${genre}`;
-    const cached = this.getCachedData(cacheKey);
-    if (cached) return cached;
-
     let url = '';
     const isAnime = type === 'anime';
+    const cacheKey = `movies_v5_${type}_${filter}_${page}_${query}_${genre}`;
+    
+    // Safety check for cached data
+    try {
+        const cached = this.getCachedData(cacheKey);
+        if (cached) return cached;
+    } catch (e) {
+        console.warn('Cache access error:', e);
+    }
 
+    // URL Construction
     if (query) {
       url = `${API_CONFIG.BASE_URL}/search/${isAnime ? 'tv' : type}?api_key=${API_CONFIG.KEY}&query=${encodeURIComponent(query)}&page=${page}`;
       if (isAnime) url += '&with_genres=16';
@@ -36,34 +39,22 @@ const API = {
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
       const dateStr = tomorrow.toISOString().split('T')[0];
-
       if (type === 'movie') {
-        // Use discover for movies to ensure every page is full of future releases
         url = `${API_CONFIG.BASE_URL}/discover/movie?api_key=${API_CONFIG.KEY}&primary_release_date.gte=${dateStr}&sort_by=primary_release_date.asc&page=${page}`;
       } else {
-        // TV/Anime: use discover with tomorrow's date for accurate future releases
         url = `${API_CONFIG.BASE_URL}/discover/tv?api_key=${API_CONFIG.KEY}&first_air_date.gte=${dateStr}&sort_by=first_air_date.asc&page=${page}`;
         if (isAnime) url += '&with_genres=16';
       }
     } else {
       const endpoint = (isAnime || type === 'tv') ? 'tv' : 'movie';
-      const sortMap = {
-        'popular': 'popularity.desc',
-        'top_rated': 'vote_average.desc',
-        'trending': 'popularity.desc',
-        'upcoming': 'primary_release_date.asc'
-      };
-      const sortBy = sortMap[filter] || 'popularity.desc';
-
+      const sortBy = 'popularity.desc';
       if (genre) {
         url = `${API_CONFIG.BASE_URL}/discover/${endpoint}?api_key=${API_CONFIG.KEY}&with_genres=${genre}&sort_by=${sortBy}&page=${page}`;
         if (isAnime && !genre.split(',').includes('16')) url += ',16';
-        if (filter === 'top_rated') url += '&vote_count.gte=100';
       } else {
         url = `${API_CONFIG.BASE_URL}/${endpoint}/${filter}?api_key=${API_CONFIG.KEY}&page=${page}`;
         if (isAnime) {
-          url = `${API_CONFIG.BASE_URL}/discover/tv?api_key=${API_CONFIG.KEY}&with_genres=16&sort_by=${sortBy}&page=${page}`;
-          if (filter === 'top_rated') url += '&vote_count.gte=100';
+            url = `${API_CONFIG.BASE_URL}/discover/tv?api_key=${API_CONFIG.KEY}&with_genres=16&sort_by=${sortBy}&page=${page}`;
         }
       }
     }
@@ -72,12 +63,11 @@ const API = {
       const response = await fetch(url, {
         method: 'GET',
         mode: 'cors',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
-        }
+        credentials: 'omit',
+        headers: { 'Accept': 'application/json' }
       });
-      if (!response.ok) throw new Error(`API Error: ${response.status}`);
+
+      if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       const data = await response.json();
 
       if (isAnime) {
@@ -86,107 +76,77 @@ const API = {
 
       this.cacheData(cacheKey, data);
       
-      // Merge Manual Admin Content
-      const manualData = JSON.parse(localStorage.getItem('moviebox_admin') || '{}');
-      const manualItems = Object.values(manualData).filter(item => {
-         // Filter by type
-         const isAnime = type === 'anime';
-         if (item.type !== (isAnime ? 'anime' : type)) return false;
-         
-         // Filter by Upcoming
-         if (filter === 'upcoming') {
-            const nowUTC = new Date().toISOString().split('T')[0];
-            const itemDate = item.release_date || item.first_air_date;
-            if (!itemDate || itemDate <= nowUTC) return false;
-         }
-
-         // Filter by Search
-         if (query) {
-            const title = (item.title || item.name || '').toLowerCase();
-            if (!title.includes(query.toLowerCase())) return false;
-         }
-
-         return true;
-      });
-
-      // Override logic
-      if (manualItems.length > 0 && page === 1) {
-         manualItems.forEach(manualItem => {
-            const formatted = {
-               ...manualItem,
-               id: isNaN(manualItem.id) ? manualItem.id : parseInt(manualItem.id),
-               manual: true 
-            };
-            const index = data.results.findIndex(r => r.id === formatted.id);
-            if (index !== -1) {
-               data.results[index] = formatted;
-            } else {
-               data.results.unshift(formatted);
+      // Safe Manual Merge
+      try {
+        const manualData = JSON.parse(localStorage.getItem('moviebox_admin') || '{}');
+        const manualItems = Object.values(manualData).filter(item => {
+            if (item.type !== (isAnime ? 'anime' : type)) return false;
+            if (filter === 'upcoming') {
+                const nowUTC = new Date().toISOString().split('T')[0];
+                const itemDate = item.release_date || item.first_air_date;
+                if (!itemDate || itemDate <= nowUTC) return false;
             }
-         });
+            if (query) {
+                const title = (item.title || item.name || '').toLowerCase();
+                if (!title.includes(query.toLowerCase())) return false;
+            }
+            return true;
+        });
+
+        if (manualItems.length > 0 && page === 1) {
+            manualItems.forEach(manualItem => {
+                const formatted = { ...manualItem, manual: true };
+                const index = data.results.findIndex(r => r.id == formatted.id);
+                if (index !== -1) data.results[index] = formatted;
+                else data.results.unshift(formatted);
+            });
+        }
+      } catch (err) {
+        console.error('Manual merge failed but continuing:', err);
       }
 
       return data;
     } catch (error) {
-      console.error('TMDB API GET MOVIES ERROR:', error);
-      return { _error: error.message || 'Unknown Fetch Error' };
+      console.error('TMDB FETCH ERROR:', error);
+      return { _error: error.message + ' | URL: ' + url.substring(0, 50) + '...' };
     }
   },
 
   async getTrailer(id, type = 'movie') {
-    const cacheKey = `trailer_${id}_${type}`;
-    const cached = this.getCachedData(cacheKey);
-    if (cached) return cached;
-
     const url = `${API_CONFIG.BASE_URL}/${type}/${id}/videos?api_key=${API_CONFIG.KEY}`;
     try {
-      const response = await fetch(url, { headers: { 'Accept': 'application/json' } });
+      const response = await fetch(url, { credentials: 'omit' });
       const data = await response.json();
       const trailer = data.results.find(v => v.type === 'Trailer' && v.site === 'YouTube') || data.results[0];
-      if (trailer) {
-        const trailerUrl = `https://www.youtube.com/embed/${trailer.key}?autoplay=1&mute=1&controls=0&modestbranding=1&rel=0&iv_load_policy=3&enablejsapi=1`;
-        this.cacheData(cacheKey, trailerUrl);
-        return trailerUrl;
-      }
-      return null;
-    } catch (error) {
-      return null;
-    }
+      return trailer ? `https://www.youtube.com/embed/${trailer.key}?autoplay=1&mute=1&enablejsapi=1` : null;
+    } catch (e) { return null; }
   },
 
   async getGenres(type = 'movie') {
-    const cacheKey = `genres_${type}`;
-    const cached = this.getCachedData(cacheKey);
-    if (cached) return cached;
-
     const url = `${API_CONFIG.BASE_URL}/genre/${type}/list?api_key=${API_CONFIG.KEY}`;
     try {
-      const response = await fetch(url, { headers: { 'Accept': 'application/json' } });
+      const response = await fetch(url, { credentials: 'omit' });
       const data = await response.json();
-      this.cacheData(cacheKey, data.genres);
-      return data.genres;
-    } catch (error) {
-      return [];
-    }
+      return data.genres || [];
+    } catch (e) { return []; }
   },
 
   cacheData(key, data) {
-    const cacheObj = {
-      timestamp: Date.now(),
-      data: data
-    };
-    localStorage.setItem(key, JSON.stringify(cacheObj));
+    try {
+        localStorage.setItem(key, JSON.stringify({ timestamp: Date.now(), data: data }));
+    } catch (e) {}
   },
 
   getCachedData(key) {
-    const cached = localStorage.getItem(key);
-    if (!cached) return null;
-
-    const cacheObj = JSON.parse(cached);
-    const isValid = (Date.now() - cacheObj.timestamp) < API_CONFIG.CACHE_TIME;
-
-    if (isValid) return cacheObj.data;
-    localStorage.removeItem(key);
+    try {
+        const cached = localStorage.getItem(key);
+        if (!cached) return null;
+        const cacheObj = JSON.parse(cached);
+        if ((Date.now() - cacheObj.timestamp) < API_CONFIG.CACHE_TIME) return cacheObj.data;
+        localStorage.removeItem(key);
+    } catch (e) {}
     return null;
   }
 };
+
+window.API = API;
