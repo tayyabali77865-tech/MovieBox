@@ -60,32 +60,35 @@ const Admin = {
       const customLinkInput = document.getElementById('admin-custom-link');
       const hindiCheckbox = document.getElementById('admin-hindi-dubbed');
 
-      // Toggle admin panel
-      adminToggle.addEventListener('click', (e) => {
-         e.preventDefault();
-         adminPanel.classList.toggle('active');
-         this.updateAdminList();
-      });
+      // Safety check: only add listeners if elements exist
+      if (adminToggle && adminPanel) {
+         adminToggle.addEventListener('click', (e) => {
+            e.preventDefault();
+            adminPanel.classList.toggle('active');
+            this.updateAdminList();
+         });
+      }
 
-      // Save data
-      saveBtn.addEventListener('click', () => {
-         const id = movieIdInput.value.trim();
-         const customLink = customLinkInput.value.trim();
-         const isHindiDubbed = hindiCheckbox.checked;
+      if (saveBtn) {
+         saveBtn.addEventListener('click', () => {
+            const id = movieIdInput.value.trim();
+            const customLink = customLinkInput.value.trim();
+            const isHindiDubbed = hindiCheckbox.checked;
 
-         if (!id) {
-            this.showStatus('Please enter a Movie ID', 'error');
-            return;
-         }
+            if (!id) {
+               this.showStatus('Please enter a Movie ID', 'error');
+               return;
+            }
 
-         this.saveMovieData(id, { customLink, isHindiDubbed });
-         this.showStatus('Movie data saved successfully!', 'success');
+            this.saveMovieData(id, { customLink, isHindiDubbed });
+            this.showStatus('Movie data saved successfully!', 'success');
 
-         // Reset inputs
-         movieIdInput.value = '';
-         customLinkInput.value = '';
-         hindiCheckbox.checked = false;
-      });
+            // Reset inputs
+            movieIdInput.value = '';
+            customLinkInput.value = '';
+            hindiCheckbox.checked = false;
+         });
+      }
 
       this.updateAdminList();
    },
@@ -95,9 +98,10 @@ const Admin = {
     */
    showStatus(msg, type) {
       const statusDiv = document.getElementById('admin-status');
+      if (!statusDiv) return;
       statusDiv.textContent = msg;
       statusDiv.style.color = type === 'success' ? '#4caf50' : '#f44336';
-      setTimeout(() => statusDiv.textContent = '', 3000);
+      setTimeout(() => { if (statusDiv) statusDiv.textContent = ''; }, 3000);
    },
 
    /**
@@ -105,6 +109,8 @@ const Admin = {
     */
    updateAdminList() {
       const listDiv = document.getElementById('admin-list');
+      if (!listDiv) return;
+      
       const data = this.getAdminData();
       const ids = Object.keys(data);
 
