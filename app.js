@@ -177,14 +177,12 @@ const App = {
         this.renderMovies(this.movies);
         this.renderPagination();
       } else {
-        throw new Error(data && data._error ? data._error : 'No Results Found');
+        throw new Error('Empty Response');
       }
     } catch (error) {
       console.error('Fetch error:', error);
-      this.grid.innerHTML = `<div style="grid-column: 1/-1; text-align: center; padding: 4rem; color: #f44336;">
-          <h3 style="font-size:1.5rem; margin-bottom:1rem;">Error: ${error.message}</h3>
-          <p style="font-size:1rem; opacity:0.7;">Check your connection or try a **VPN** if TMDb is blocked by your ISP.<br><br>
-          <button onclick="location.reload()" class="btn-primary" style="padding:10px 20px; font-size:0.8rem;">Try Refreshing</button></p>
+      this.grid.innerHTML = `<div style="grid-column: 1/-1; text-align: center; padding: 5rem; color: #666; font-size:1.5rem;">
+          Failed to fetch movies. <br><span style="font-size:1rem; opacity:0.7;">Check your connection or try again later.</span>
         </div>`;
     }
     this.renderFilterHeading();
