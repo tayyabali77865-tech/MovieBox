@@ -69,8 +69,15 @@ const API = {
     }
 
     try {
-      const response = await fetch(url);
-      if (!response.ok) throw new Error('API Error');
+      const response = await fetch(url, {
+        method: 'GET',
+        mode: 'cors',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        }
+      });
+      if (!response.ok) throw new Error(`API Error: ${response.status}`);
       const data = await response.json();
 
       if (isAnime) {
@@ -133,7 +140,7 @@ const API = {
 
     const url = `${API_CONFIG.BASE_URL}/${type}/${id}/videos?api_key=${API_CONFIG.KEY}`;
     try {
-      const response = await fetch(url);
+      const response = await fetch(url, { headers: { 'Accept': 'application/json' } });
       const data = await response.json();
       const trailer = data.results.find(v => v.type === 'Trailer' && v.site === 'YouTube') || data.results[0];
       if (trailer) {
@@ -154,7 +161,7 @@ const API = {
 
     const url = `${API_CONFIG.BASE_URL}/genre/${type}/list?api_key=${API_CONFIG.KEY}`;
     try {
-      const response = await fetch(url);
+      const response = await fetch(url, { headers: { 'Accept': 'application/json' } });
       const data = await response.json();
       this.cacheData(cacheKey, data.genres);
       return data.genres;
