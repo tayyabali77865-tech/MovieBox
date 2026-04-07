@@ -341,6 +341,19 @@ const App = {
       if (!res.ok) throw new Error('Movie not found');
       const movie = await res.json();
 
+      // Reset for every new modal open (Clear previous state)
+      if (this.ytPlayer) {
+        try { if (typeof this.ytPlayer.destroy === 'function') this.ytPlayer.destroy(); } catch (e) { }
+        this.ytPlayer = null;
+      }
+
+      // Reset sound toggle UI at modal open
+      const soundToggle = document.getElementById('sound-toggle');
+      if (soundToggle) {
+        soundToggle.querySelector('span').textContent = 'Muted';
+        soundToggle.querySelector('i').className = 'fas fa-volume-mute';
+      }
+
       this.addToRecentlyViewed(movie);
       this.renderRecentlyViewed();
 
@@ -367,11 +380,8 @@ const App = {
       const trailerContainer = document.getElementById('trailer-container');
       const noTrailer = document.getElementById('no-trailer');
 
-      // Force destroy the old player before fetching new one
       if (trailerContainer) {
         trailerContainer.innerHTML = '';
-        const oldIframe = trailerContainer.querySelector('iframe');
-        if (oldIframe) oldIframe.remove();
       }
       if (noTrailer) noTrailer.style.display = 'none';
 
@@ -379,14 +389,45 @@ const App = {
 
       if (trailerContainer && noTrailer) {
         if (trailerUrl) {
-          // Small delay to ensure the DOM has cleared the old player
-          setTimeout(() => {
-            trailerContainer.innerHTML = `<iframe id="trailer-video" src="${trailerUrl}" width="100%" height="100%" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen style="pointer-events: none;"></iframe>`;
-          }, 50);
+          if (soundToggle) soundToggle.style.display = 'flex';
+          
+          // Use a unique ID to avoid API reuse conflicts
+          const uId = `yt-player-${Date.now()}`;
+          
+          // Extract video ID safely
+          const vIdMatch = trailerUrl.match(/embed\/([^?]+)/);
+          const vId = vIdMatch ? vIdMatch[1] : null;
+
+          if (vId && window.YT && YT.Player) {
+            trailerContainer.innerHTML = `<div id="${uId}"></div>`;
+            this.ytPlayer = new YT.Player(uId, {
+               height: '100%',
+               width: '100%',
+               videoId: vId,
+               playerVars: {
+                 'autoplay': 1,
+                 'mute': 1,
+                 'loop': 1,
+                 'playlist': vId,
+                 'controls': 0,
+                 'enablejsapi': 1
+               },
+               events: {
+                 'onReady': (event) => event.target.playVideo(),
+                 'onStateChange': (e) => {
+                    if (e.data === YT.PlayerState.ENDED) e.target.playVideo();
+                 }
+               }
+            });
+          } else {
+             // Fallback
+             trailerContainer.innerHTML = `<iframe id="trailer-video" src="${trailerUrl}" width="100%" height="100%" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>`;
+          }
           noTrailer.style.display = 'none';
         } else {
           trailerContainer.innerHTML = '';
           noTrailer.style.display = 'flex';
+          if (soundToggle) soundToggle.style.display = 'none';
         }
       }
 
@@ -411,8 +452,14 @@ const App = {
     if (this.modal) this.modal.classList.remove('active');
     document.body.style.overflow = 'auto';
     const trailerContainer = document.getElementById('trailer-container');
-    if (trailerContainer) trailerContainer.innerHTML = '';
     const noTrailer = document.getElementById('no-trailer');
+
+    if (this.ytPlayer) {
+      try { if (typeof this.ytPlayer.destroy === 'function') this.ytPlayer.destroy(); } catch (e) { }
+      this.ytPlayer = null;
+    }
+
+    if (trailerContainer) trailerContainer.innerHTML = '';
     if (noTrailer) noTrailer.style.display = 'none';
 
     if (updHash) window.location.hash = '';
@@ -441,10 +488,23 @@ const App = {
 
   toggleSound() {
     const btn = document.getElementById('sound-toggle');
-    const iframe = document.getElementById('trailer-video');
-    if (!iframe) return;
     const isM = btn.querySelector('span').textContent === 'Muted';
-    iframe.src = iframe.src.replace(isM ? 'mute=1' : 'mute=0', isM ? 'mute=0' : 'mute=1');
+
+    if (this.ytPlayer && typeof this.ytPlayer.mute === 'function') {
+      if (isM) {
+        this.ytPlayer.unMute();
+        this.ytPlayer.playVideo(); // Force play just in case
+      } else {
+        this.ytPlayer.mute();
+      }
+    } else {
+      // Fallback to src replace if player API didn't init yet
+      const iframe = document.getElementById('trailer-video');
+      if (iframe) {
+        iframe.src = iframe.src.replace(isM ? 'mute=1' : 'mute=0', isM ? 'mute=0' : 'mute=1');
+      }
+    }
+
     btn.querySelector('span').textContent = isM ? 'Unmuted' : 'Muted';
     btn.querySelector('i').className = isM ? 'fas fa-volume-up' : 'fas fa-volume-mute';
   },

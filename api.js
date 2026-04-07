@@ -92,7 +92,7 @@ const API = {
       const resp = await fetch(url);
       const data = await resp.json();
       const t = data.results.find(v => v.type === 'Trailer' && v.site === 'YouTube') || data.results[0];
-      return t ? `https://www.youtube.com/embed/${t.key}?autoplay=1&mute=1&loop=1&playlist=${t.key}&controls=0&showinfo=0&rel=0` : null;
+      return t ? `https://www.youtube.com/embed/${t.key}?autoplay=1&mute=1&loop=1&playlist=${t.key}&controls=0&showinfo=0&rel=0&enablejsapi=1` : null;
     } catch (e) { return null; }
   },
 
