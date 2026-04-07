@@ -356,6 +356,8 @@ const App = {
       document.getElementById('modal-year').innerHTML = `<i class="far fa-calendar-alt"></i> ${(movie.release_date || movie.first_air_date || '????').split('-')[0]}`;
       document.getElementById('modal-description').textContent = movie.overview || 'No description available.';
 
+      this.updateMetaTags(movie, type);
+      
       const watchBtn = document.getElementById('modal-watch-btn');
       watchBtn.onclick = () => {
          const store = JSON.parse(localStorage.getItem('moviebox_admin') || '{}');
@@ -400,6 +402,27 @@ const App = {
     document.body.style.overflow = 'auto';
     document.getElementById('trailer-container').innerHTML = '';
     if (updHash) window.location.hash = '';
+    this.resetMetaTags();
+  },
+
+  resetMetaTags() {
+    const title = 'MovieBox | Discover Movies & Anime';
+    const desc = 'Watch Movies, TV Series, and Anime online with Hindi Dubbed versions. Stay updated with Trending, Popular, Top Rated, and Upcoming releases.';
+    const poster = 'https://cdn-www.bluestacks.com/bs-images/MBMTV_PC_EN.jpg';
+    const url = 'https://movie-box-cyan.vercel.app/';
+
+    document.title = title;
+    this.setMeta('description', desc);
+    this.setMeta('keywords', 'Movies online, Hindi Dubbed Movies, TV Series online, Anime online, Upcoming Movies, Trending TV Shows, Movie reviews');
+    
+    this.setMetaProperty('og:title', title);
+    this.setMetaProperty('og:description', desc);
+    this.setMetaProperty('og:url', url);
+    this.setMetaProperty('og:image', poster);
+
+    this.setMetaProperty('twitter:title', title);
+    this.setMetaProperty('twitter:description', desc);
+    this.setMetaProperty('twitter:image', poster);
   },
 
   toggleSound() {
@@ -448,6 +471,47 @@ const App = {
            <div class="movie-card-info" style="padding: 0.5rem;"><h4 class="movie-title" style="font-size: 0.8rem;">${m.title || m.name}</h4></div>
         </div>
     `).join('');
+  },
+
+  /**
+   * Dynamic SEO System
+   * Updates meta tags for movie sharing context
+   */
+  updateMetaTags(m, type) {
+    const title = m.title || m.name || 'MovieBox';
+    const year = (m.release_date || m.first_air_date || '????').split('-')[0];
+    const genre = m.genres ? m.genres.map(g => g.name).join(', ') : (m.genres_str || 'Movie');
+    const poster = m.poster_path ? (m.manual && m.poster_path.startsWith('http') ? m.poster_path : API_CONFIG.IMG_URL + m.poster_path) : 'https://cdn-www.bluestacks.com/bs-images/MBMTV_PC_EN.jpg';
+    const category = type === 'movie' ? 'movie' : 'tv';
+    const url = `https://movie-box-cyan.vercel.app/#media/${category}/${m.id}`;
+
+    // Browser Title
+    document.title = `${title} (${year}) - Watch Online | MovieBox`;
+
+    // SEO Meta
+    this.setMeta('description', `Watch ${title} (${year}) online. This is a ${genre} available in Hindi Dubbed. Stream trailers, reviews, and details on MovieBox.`);
+    this.setMeta('keywords', `${title}, ${title} Hindi Dubbed, ${genre}, Watch ${title} online, ${category} online`);
+    
+    // Open Graph
+    this.setMetaProperty('og:title', `${title} - Watch Online | MovieBox`);
+    this.setMetaProperty('og:description', `Stream ${title} (${year}) online. ${title} is a ${genre} available in Hindi Dubbed. Check ratings and trailers.`);
+    this.setMetaProperty('og:url', url);
+    this.setMetaProperty('og:image', poster);
+
+    // Twitter
+    this.setMetaProperty('twitter:title', `${title} - Watch Online | MovieBox`);
+    this.setMetaProperty('twitter:description', `Stream ${title} (${year}) online. Check ratings, trailers, and reviews on MovieBox.`);
+    this.setMetaProperty('twitter:image', poster);
+  },
+
+  setMeta(name, content) {
+    const el = document.querySelector(`meta[name="${name}"]`);
+    if (el) el.setAttribute('content', content);
+  },
+
+  setMetaProperty(prop, content) {
+    const el = document.querySelector(`meta[property="${prop}"]`);
+    if (el) el.setAttribute('content', content);
   },
 
   setupNavScroll() {
