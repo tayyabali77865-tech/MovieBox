@@ -390,10 +390,10 @@ const App = {
       if (trailerContainer && noTrailer) {
         if (trailerUrl) {
           if (soundToggle) soundToggle.style.display = 'flex';
-          
+
           // Use a unique ID to avoid API reuse conflicts
           const uId = `yt-player-${Date.now()}`;
-          
+
           // Extract video ID safely
           const vIdMatch = trailerUrl.match(/embed\/([^?]+)/);
           const vId = vIdMatch ? vIdMatch[1] : null;
@@ -401,27 +401,27 @@ const App = {
           if (vId && window.YT && YT.Player) {
             trailerContainer.innerHTML = `<div id="${uId}"></div>`;
             this.ytPlayer = new YT.Player(uId, {
-               height: '100%',
-               width: '100%',
-               videoId: vId,
-               playerVars: {
-                 'autoplay': 1,
-                 'mute': 1,
-                 'loop': 1,
-                 'playlist': vId,
-                 'controls': 0,
-                 'enablejsapi': 1
-               },
-               events: {
-                 'onReady': (event) => event.target.playVideo(),
-                 'onStateChange': (e) => {
-                    if (e.data === YT.PlayerState.ENDED) e.target.playVideo();
-                 }
-               }
+              height: '100%',
+              width: '100%',
+              videoId: vId,
+              playerVars: {
+                'autoplay': 1,
+                'mute': 1,
+                'loop': 1,
+                'playlist': vId,
+                'controls': 0,
+                'enablejsapi': 1
+              },
+              events: {
+                'onReady': (event) => event.target.playVideo(),
+                'onStateChange': (e) => {
+                  if (e.data === YT.PlayerState.ENDED) e.target.playVideo();
+                }
+              }
             });
           } else {
-             // Fallback
-             trailerContainer.innerHTML = `<iframe id="trailer-video" src="${trailerUrl}" width="100%" height="100%" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>`;
+            // Fallback
+            trailerContainer.innerHTML = `<iframe id="trailer-video" src="${trailerUrl}" width="100%" height="100%" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>`;
           }
           noTrailer.style.display = 'none';
         } else {

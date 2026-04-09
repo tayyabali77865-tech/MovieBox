@@ -4,7 +4,8 @@
  */
 
 window.API_CONFIG = {
-  KEY: '3370c7875d057cde17b3d68c22cba6e8',
+  // Reference the API key from env.js if it exists
+  KEY: (typeof ENV !== 'undefined' && ENV.TMDB_API_KEY) ? ENV.TMDB_API_KEY : '3370c7875d057cde17b3d68c22cba6e8',
   BASE_URL: 'https://api.themoviedb.org/3',
   IMG_URL: 'https://image.tmdb.org/t/p/w500',
   BACKDROP_URL: 'https://image.tmdb.org/t/p/original',
